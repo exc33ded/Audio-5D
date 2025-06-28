@@ -1,0 +1,17 @@
+[project]
+name = "audio-5d"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.24.0",
+    "pyaudio>=0.2.13",
+    "pydub>=0.25.1",
+    "python-dotenv>=1.1.1",
+    "pyttsx3>=2.90",
+    "requests>=2.31.0",
+    "scipy>=1.11.0",
+    "sounddevice>=0.4.6",
+    "unrealspeech>=0.1.5",
+]
