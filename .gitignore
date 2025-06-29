@@ -9,3 +9,5 @@ temp_audio/
 
 # Virtual environments
 .venv
+
+.env
