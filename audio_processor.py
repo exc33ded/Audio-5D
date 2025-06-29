@@ -137,14 +137,23 @@ class AudioProcessor:
             pan_filter = f"apulsator=hz={pan_rate}"
         reverb_filter = f"aecho={reverb_in_gain}:{reverb_out_gain}:{reverb_delays}:{reverb_decays}"
         filter_chain = f"{pan_filter},{reverb_filter},loudnorm"
-        # If SFX, mix them in
+        # If SFX, first apply pan/reverb to main audio, then mix with SFX
         if sfx_paths:
-            # Build filter_complex for multiple SFX
-            inputs = [f'-i', in_path] + sum([[f'-i', s] for s in sfx_paths if os.path.exists(s)], [])
+            # Step 1: Process main audio with pan/reverb to a temp file
+            temp_panned = in_path.replace('.mp3', '_panned.mp3')
+            pan_cmd = [
+                self.ffmpeg, '-y', '-i', in_path,
+                '-af', filter_chain,
+                '-codec:a', 'libmp3lame', '-b:a', '256k',
+                temp_panned
+            ]
+            print(f"[FFMPEG CMD] {' '.join(str(c) for c in pan_cmd)})")
+            subprocess.run(pan_cmd, check=True)
+            # Step 2: Mix panned main audio with SFX
+            inputs = ['-i', temp_panned] + sum([[f'-i', s] for s in sfx_paths if os.path.exists(s)], [])
             amix_inputs = 1 + len([s for s in sfx_paths if os.path.exists(s)])
-            # Make narration louder and SFX a bit softer
-            narration_boost = '[0:a]volume=1.2[voice]'  # boost narration
-            sfx_volumes = [f'[{i+1}:a]volume=0.18[sfx{i}]' for i in range(amix_inputs-1)]
+            narration_boost = '[0:a]volume=3.0[voice]'  # extreme boost for narrator
+            sfx_volumes = [f'[{i+1}:a]volume=0.02[sfx{i}]' for i in range(amix_inputs-1)]
             sfx_labels = ''.join([f'[sfx{i}]' for i in range(amix_inputs-1)])
             filter_complex = (
                 narration_boost + ';' +
@@ -157,6 +166,9 @@ class AudioProcessor:
                 '-codec:a', 'libmp3lame', '-b:a', '256k',
                 out_path
             ]
+            print(f"[FFMPEG CMD] {' '.join(str(c) for c in cmd)})")
+            subprocess.run(cmd, check=True)
+            os.remove(temp_panned)
         else:
             cmd = [
                 self.ffmpeg, '-y', '-i', in_path,
@@ -164,8 +176,8 @@ class AudioProcessor:
                 '-codec:a', 'libmp3lame', '-b:a', '256k',
                 out_path
             ]
-        print(f"[FFMPEG CMD] {' '.join(str(c) for c in cmd)}")
-        subprocess.run(cmd, check=True)
+            print(f"[FFMPEG CMD] {' '.join(str(c) for c in cmd)})")
+            subprocess.run(cmd, check=True)
 
     def concat(self, segment_paths, final_out):
         """Concatenate via ffmpeg concat demuxer."""
@@ -218,6 +230,9 @@ class AudioProcessor:
             else:
                 char_segments[idx] = (line, role)
         # 2) Process narrator lines as one segment for smooth 8D pan
+        ambient_sfx = self.get_ambient_sfx(story_text)
+        narrator_sfx, _ = self.detect_sfx_and_pan(' '.join(narrator_lines), 'narrator') if narrator_lines else ([], 0.0)
+        combined_sfx = list(set(ambient_sfx + narrator_sfx))
         if narrator_lines:
             narrator_text = ' '.join(narrator_lines)
             speed, pitch, volume = self.extract_emotion_params(narrator_text)
@@ -240,14 +255,14 @@ class AudioProcessor:
             if reverb or extra_reverb:
                 self.apply_effects(
                     raw_mp3, proc_mp3,
-                    pan_pos=0.0, pan_rate=pan_rate, sfx_path=None,
+                    pan_pos=0.0, pan_rate=pan_rate, sfx_path=combined_sfx,
                     reverb_in_gain=0.9 if extra_reverb else 0.8,
                     reverb_out_gain=1.0 if extra_reverb else 0.9,
                     reverb_delays="120|90" if extra_reverb else "60|60",
                     reverb_decays="0.7|0.5" if extra_reverb else "0.4|0.3"
                 )
             else:
-                self.apply_effects(raw_mp3, proc_mp3, pan_pos=0.0, pan_rate=pan_rate, sfx_path=None)
+                self.apply_effects(raw_mp3, proc_mp3, pan_pos=0.0, pan_rate=pan_rate, sfx_path=combined_sfx)
             # Split processed narrator audio into segments matching original narrator lines
             # (Optional: advanced - for now, treat as one segment)
             segment_files.append((min(narrator_indices), proc_mp3))
