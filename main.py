@@ -67,7 +67,7 @@ def split_story_into_chunks(story_text, max_chunk_length=1000):
     return chunks
 
 if __name__=="__main__":
-    ffmpeg = r"E:\Projects\Audio 5D\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
+    ffmpeg = r"ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
     proc = AudioProcessor(ffmpeg_bin=ffmpeg)
     
     story_file = Path("story.txt")
