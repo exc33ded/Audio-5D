@@ -8,7 +8,7 @@ import re
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'supersecret')
+app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(32))
 
 def split_story_into_chunks(story_text, max_chunk_length=950):
     sentences = re.split(r'(?<=[.!?]) +', story_text)
@@ -33,7 +33,7 @@ def index():
             return redirect(url_for('index'))
         # Split into TTS-safe chunks
         chunks = split_story_into_chunks(story_text, max_chunk_length=950)
-        ffmpeg = r"E:\Projects\Audio 5D\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
+        ffmpeg = r"ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
         proc = AudioProcessor(ffmpeg_bin=ffmpeg)
         temp_files = []
         for i, chunk in enumerate(chunks):
