@@ -1,0 +1,50 @@
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #232526, #414345 80%);
+    color: #fff;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+}
+.glass-card {
+    background: rgba(30, 30, 40, 0.85);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 2.5rem 2rem 2rem 2rem;
+    margin-top: 60px;
+}
+.title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #ff512f, #dd2476);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+.btn-primary {
+    background: linear-gradient(90deg, #ff512f, #dd2476);
+    border: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+}
+.btn-primary:disabled {
+    background: #444 !important;
+    color: #bbb;
+}
+#loading-spinner {
+    display: none;
+    margin: 1rem auto;
+}
+#result-section {
+    display: none;
+    margin-top: 2rem;
+    text-align: center;
+}
+.audio-player {
+    width: 100%;
+    margin-bottom: 1rem;
+}

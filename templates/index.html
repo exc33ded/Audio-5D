@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5D/8D Audio Story Creator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <style>
+      /* Fun animated background bubbles */
+      .bubble {
+        position: fixed;
+        bottom: -100px;
+        border-radius: 50%;
+        opacity: 0.25;
+        z-index: 0;
+        animation: floatUp 16s linear infinite;
+      }
+      @keyframes floatUp {
+        0% { transform: translateY(0) scale(1); opacity: 0.25; }
+        80% { opacity: 0.35; }
+        100% { transform: translateY(-120vh) scale(1.2); opacity: 0; }
+      }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="glass-card mx-auto position-relative" style="z-index:1;">
+        <div class="title">5D/8D Audio Story Creator</div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        <form id="story-form" method="POST">
+            <div class="mb-3">
+                <label for="story_text" class="form-label">Paste your story below:</label>
+                <textarea class="form-control" id="story_text" name="story_text" rows="10" required></textarea>
+            </div>
+            <button id="generate-btn" type="submit" class="btn btn-primary w-100">🎧 Generate Immersive Audio</button>
+            <div id="loading-spinner" class="text-center" style="display:none;">
+                <div class="spinner-border text-warning" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="mt-2">Creating your immersive audio...</div>
+            </div>
+        </form>
+        <div id="result-section" style="display:none;">
+            <audio id="audio-player" class="audio-player" controls></audio>
+            <a id="download-link" class="btn btn-success" href="#" download>Download Audio</a>
+        </div>
+        <div class="mt-4 text-center">
+            <small>Powered by Unreal Speech, Gemini, and Freesound APIs<br>
+            <span style="color:#ffd700;">by <a href="https://www.linkedin.com/in/mohammedsarim/" target="_blank" style="color:#ffd700;text-decoration:underline;">Mohammed Sarim</a></span></small>
+        </div>
+    </div>
+</div>
+<!-- Fun animated bubbles -->
+<script>
+function randomBetween(a, b) { return Math.random() * (b - a) + a; }
+for(let i=0;i<18;i++){
+  let b = document.createElement('div');
+  b.className = 'bubble';
+  b.style.left = randomBetween(2,98) + '%';
+  b.style.width = b.style.height = randomBetween(40,120) + 'px';
+  b.style.background = `radial-gradient(circle at 30% 30%, #ff512f 0%, #dd2476 100%)`;
+  b.style.animationDelay = randomBetween(0,12)+'s';
+  document.body.appendChild(b);
+}
+// Fun JS: confetti on audio ready
+const form = document.getElementById('story-form');
+const btn = document.getElementById('generate-btn');
+const spinner = document.getElementById('loading-spinner');
+const resultSection = document.getElementById('result-section');
+const audioPlayer = document.getElementById('audio-player');
+const downloadLink = document.getElementById('download-link');
+
+form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    resultSection.style.display = 'none';
+    audioPlayer.src = '';
+    downloadLink.href = '#';
+    const formData = new FormData(form);
+    const response = await fetch('/', {
+        method: 'POST',
+        body: formData
+    });
+    if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        audioPlayer.src = url;
+        downloadLink.href = url;
+        resultSection.style.display = 'block';
+        // Fun: confetti burst
+        for(let i=0;i<30;i++){
+          let c=document.createElement('div');
+          c.style.position='fixed';
+          c.style.left=randomBetween(10,90)+'vw';
+          c.style.top='-30px';
+          c.style.width=c.style.height=randomBetween(8,18)+'px';
+          c.style.background='hsl('+Math.floor(Math.random()*360)+',90%,60%)';
+          c.style.borderRadius='50%';
+          c.style.zIndex=9999;
+          c.style.opacity=0.85;
+          c.style.transition='all 1.2s cubic-bezier(.17,.67,.83,.67)';
+          document.body.appendChild(c);
+          setTimeout(()=>{
+            c.style.top=randomBetween(60,90)+'vh';
+            c.style.left=randomBetween(0,100)+'vw';
+            c.style.opacity=0;
+          },10);
+          setTimeout(()=>c.remove(),1400);
+        }
+    } else {
+        alert('Error generating audio. Please try again.');
+    }
+    spinner.style.display = 'none';
+    btn.disabled = false;
+});
+</script>
+</body>
+</html>

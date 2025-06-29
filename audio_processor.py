@@ -64,14 +64,22 @@ class AudioProcessor:
             f.write(resp.content)
         # Add a 0.3s silence after each segment for pacing
         silence_path = out_path.replace('.mp3', '_silence.mp3')
-        cmd = [self.ffmpeg, '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', '0.3', '-q:a', '9', '-acodec', 'libmp3lame', silence_path]
+        cmd = [self.ffmpeg, '-nostdin', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', '0.3', '-q:a', '9', '-acodec', 'libmp3lame', silence_path]
         subprocess.run(cmd, check=True)
         # Concatenate voice and silence
         concat_path = out_path.replace('.mp3', '_withsilence.mp3')
-        cmd = [self.ffmpeg, '-y', '-i', f"concat:{out_path}|{silence_path}", '-acodec', 'libmp3lame', '-b:a', '256k', concat_path]
+        cmd = [self.ffmpeg, '-nostdin', '-y', '-i', f"concat:{out_path}|{silence_path}", '-acodec', 'libmp3lame', '-b:a', '256k', concat_path]
         subprocess.run(cmd, check=True)
-        os.replace(concat_path, out_path)
         os.remove(silence_path)
+        import time
+        for _ in range(10):
+            try:
+                os.replace(concat_path, out_path)
+                break
+            except PermissionError:
+                time.sleep(0.1)
+        else:
+            raise PermissionError(f"Could not replace {out_path} after several attempts.")
 
     def detect_sfx_and_pan(self, text, role):
         """Detect multiple SFX and pan direction from text and role. More robust cue matching and debug output."""
@@ -142,7 +150,7 @@ class AudioProcessor:
             # Step 1: Process main audio with pan/reverb to a temp file
             temp_panned = in_path.replace('.mp3', '_panned.mp3')
             pan_cmd = [
-                self.ffmpeg, '-y', '-i', in_path,
+                self.ffmpeg, '-nostdin', '-y', '-i', in_path,
                 '-af', filter_chain,
                 '-codec:a', 'libmp3lame', '-b:a', '256k',
                 temp_panned
@@ -160,7 +168,7 @@ class AudioProcessor:
                 ('' if not sfx_volumes else ';'.join(sfx_volumes) + ';') +
                 f'[voice]{sfx_labels}amix=inputs={amix_inputs}:duration=first:dropout_transition=2[out]'
             )
-            cmd = [self.ffmpeg, '-y'] + inputs + [
+            cmd = [self.ffmpeg, '-nostdin', '-y'] + inputs + [
                 '-filter_complex', filter_complex,
                 '-map', '[out]',
                 '-codec:a', 'libmp3lame', '-b:a', '256k',
@@ -171,7 +179,7 @@ class AudioProcessor:
             os.remove(temp_panned)
         else:
             cmd = [
-                self.ffmpeg, '-y', '-i', in_path,
+                self.ffmpeg, '-nostdin', '-y', '-i', in_path,
                 '-af', filter_chain,
                 '-codec:a', 'libmp3lame', '-b:a', '256k',
                 out_path
@@ -189,12 +197,12 @@ class AudioProcessor:
             filter_inputs.append(f'[{i}:a]')
         filter_complex = f'{"".join(filter_inputs)}concat=n={len(segment_paths)}:v=0:a=1[out]'
         cmd = [
-            self.ffmpeg, '-y', *input_args,
+            self.ffmpeg, '-nostdin', '-y', *input_args,
             '-filter_complex', filter_complex,
             '-map', '[out]',
             '-acodec', 'libmp3lame', '-b:a', '256k',
             final_out
-]
+        ]
         subprocess.run(cmd, check=True)
 
     def get_ambient_sfx(self, story_text):
