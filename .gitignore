@@ -10,4 +10,5 @@ temp_audio/
 # Virtual environments
 .venv
 
+# Environment variables
 .env
